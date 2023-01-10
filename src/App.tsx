@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { DeleteOutlined, EditOutlined } from '@ant-design/icons'
 import {
   DocumentData,
+  QuerySnapshot,
   addDoc,
   collection,
   deleteDoc,
@@ -12,6 +13,7 @@ import {
   setDoc
 } from 'firebase/firestore'
 import { db } from './firebase'
+import { Todo } from './@types/todo'
 
 const App: React.FC = () => {
   const [list, setList] = useState<DocumentData[]>([])
@@ -19,13 +21,16 @@ const App: React.FC = () => {
   const [editMode, setEditMode] = useState<boolean>(false)
   const [docInfo, setDocInfo] = useState<DocumentData>({})
 
-  async function fetchData() {
-    const querySnapshot = await getDocs(collection(db, 'todos'))
+  async function fetchData(): Promise<void> {
+    const querySnapshot: QuerySnapshot<DocumentData> = await getDocs(
+      collection(db, 'todos')
+    )
 
     setList(querySnapshot.docs)
+    return
   }
 
-  async function handleAdd() {
+  async function handleAdd(): Promise<void> {
     try {
       const docRef = await addDoc(collection(db, 'todos'), {
         content: inputValue,
@@ -40,7 +45,7 @@ const App: React.FC = () => {
     }
   }
 
-  async function handleDelete(id: string) {
+  async function handleDelete(id: string): Promise<void> {
     try {
       await deleteDoc(doc(db, 'todos', id))
       console.log('Document deleted')
@@ -51,7 +56,7 @@ const App: React.FC = () => {
     }
   }
 
-  async function handleEdit(docInfo: DocumentData) {
+  async function handleEdit(docInfo: DocumentData): Promise<void> {
     try {
       await setDoc(doc(db, 'todos', docInfo.id), {
         content: inputValue,
@@ -67,12 +72,17 @@ const App: React.FC = () => {
     }
   }
 
-  function handleEditMode(docInfo: DocumentData) {
+  function handleEditMode(docInfo: DocumentData): void {
     setEditMode(!editMode)
     setDocInfo(docInfo)
+    return
   }
 
-  async function handleCheck(id: string, content: string, completed: boolean) {
+  async function handleCheck(
+    id: string,
+    content: string,
+    completed: boolean
+  ): Promise<void> {
     try {
       await setDoc(doc(db, 'todos', id), {
         content: content,
@@ -117,40 +127,40 @@ const App: React.FC = () => {
           className="list"
           itemLayout="horizontal"
           dataSource={list}
-          renderItem={(item, index) => (
-            <List.Item key={index}>
-              <Checkbox
-                checked={item.data().completed}
-                onChange={() =>
-                  handleCheck(
-                    item.id,
-                    item.data().content,
-                    item.data().completed
-                  )
-                }
-              />
+          renderItem={(item: DocumentData, index: number) => {
+            const data: Todo = item.data()
 
-              <h3
-                className={` ${
-                  item.data().completed
-                    ? 'list-item-content-completed'
-                    : 'list-item-content'
-                }`}
-              >
-                {item.data().content}
-              </h3>
-              <div>
-                <EditOutlined
-                  onClick={() => handleEditMode(item)}
-                  className="edit"
+            return (
+              <List.Item key={index}>
+                <Checkbox
+                  checked={data.completed}
+                  onChange={() =>
+                    handleCheck(item.id, data.content, data.completed)
+                  }
                 />
-                <DeleteOutlined
-                  onClick={() => handleDelete(item.id)}
-                  className="delete"
-                />
-              </div>
-            </List.Item>
-          )}
+
+                <h3
+                  className={` ${
+                    data.completed
+                      ? 'list-item-content-completed'
+                      : 'list-item-content'
+                  }`}
+                >
+                  {data.content}
+                </h3>
+                <div>
+                  <EditOutlined
+                    onClick={() => handleEditMode(item)}
+                    className="edit"
+                  />
+                  <DeleteOutlined
+                    onClick={() => handleDelete(item.id)}
+                    className="delete"
+                  />
+                </div>
+              </List.Item>
+            )
+          }}
         />
       )}
     </main>
